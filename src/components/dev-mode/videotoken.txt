@@ -1,0 +1,308 @@
+
+import { useState } from "react";
+
+import axios from "axios";
+import { Keypair, SystemProgram, Transaction } from "@solana/web3.js";
+import {
+  createInitializeMintInstruction,
+  getAssociatedTokenAddress,
+  createMintToInstruction,
+  TOKEN_2022_PROGRAM_ID,
+} from "@solana/spl-token";
+import { useWallet, useConnection } from "@solana/wallet-adapter-react";
+
+//{ connection }: { connection: Connection }
+const Videotoken = () => {
+  const wallet = useWallet();
+  const { connection } = useConnection();
+  const [name, setName] = useState<string>("");
+  const [symbol, setSymbol] = useState<string>("");
+  const [decimals, setDecimals] = useState<number | "">("");
+  const [amount, setAmount] = useState<number | "">("");
+  const [description, setDescription] = useState<string>("");
+  const [img, setImg] = useState<string | null>(null);
+  const [imgPreview, setImgPreview] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [uploadingImage, setUploadingImage] = useState<boolean>(false);
+
+  const VITE_PUBLIC_PINATA_API_KEY = "a82955848e128ebeaa1a";
+  const VITE_PUBLIC_PINATA_SECRET_API_KEY =
+    "1907bfa4e9c0e2c182b737f0098fbcdd73aadc0ab76724e7d6d11f46932bda24";
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadingImage(true);
+      const imgUrl = await uploadImagePinata(file);
+      if (imgUrl) {
+        setImg(imgUrl);
+        setImgPreview(URL.createObjectURL(file));
+      }
+      setUploadingImage(false);
+    }
+  };
+
+  const uploadImagePinata = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await axios.post(
+        "https://api.pinata.cloud/pinning/pinFileToIPFS",
+        formData,
+        {
+          headers: {
+            pinata_api_key: VITE_PUBLIC_PINATA_API_KEY,
+            pinata_secret_api_key: VITE_PUBLIC_PINATA_SECRET_API_KEY,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      return `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
+    } catch (error) {
+      console.error("Error uploading image to Pinata:", error);
+      return null;
+    }
+  };
+
+  const uploadMetadata = async () => {
+    try {
+      const metadata = { name, symbol, description, image: img };
+      const response = await axios.post(
+        "https://api.pinata.cloud/pinning/pinJSONToIPFS",
+        metadata,
+        {
+          headers: {
+            pinata_api_key: VITE_PUBLIC_PINATA_API_KEY,
+            pinata_secret_api_key: VITE_PUBLIC_PINATA_SECRET_API_KEY,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      return `https://gateway.pinata.cloud/ipfs/${response.data.IpfsHash}`;
+    } catch (error) {
+      console.error("Error uploading metadata to Pinata:", error);
+      return null;
+    }
+  };
+
+  const createToken = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!wallet.publicKey) {
+      return;
+    }
+
+    if (
+      !wallet.publicKey ||
+      !name ||
+      !symbol ||
+      !decimals ||
+      !amount ||
+      !description ||
+      !img
+    ) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const mintKeypair = Keypair.generate();
+      const metadataUri = await uploadMetadata();
+      if (!metadataUri) {
+        return;
+      }
+
+      const associatedToken = await getAssociatedTokenAddress(
+        mintKeypair.publicKey,
+        wallet.publicKey,
+        false,
+        TOKEN_2022_PROGRAM_ID
+      );
+
+      const space = 82; // Adjust space based on mint size and metadata size
+      const lamports = await connection.getMinimumBalanceForRentExemption(
+        space
+      );
+
+      const transaction = new Transaction().add(
+        SystemProgram.createAccount({
+          fromPubkey: wallet.publicKey,
+          newAccountPubkey: mintKeypair.publicKey,
+          space,
+          lamports,
+          programId: TOKEN_2022_PROGRAM_ID,
+        }),
+        createInitializeMintInstruction(
+          mintKeypair.publicKey,
+          Number(decimals),
+          wallet.publicKey,
+          null,
+          TOKEN_2022_PROGRAM_ID
+        ),
+        createMintToInstruction(
+          mintKeypair.publicKey,
+          associatedToken,
+          wallet.publicKey,
+          Number(amount) * Math.pow(10, Number(decimals)),
+          [],
+          TOKEN_2022_PROGRAM_ID
+        )
+      );
+
+      transaction.feePayer = wallet.publicKey;
+      transaction.recentBlockhash = (
+        await connection.getLatestBlockhash()
+      ).blockhash;
+      transaction.partialSign(mintKeypair);
+
+      try {
+        const signature = await wallet.sendTransaction(transaction, connection);
+        await connection.confirmTransaction(signature);
+        console.log(
+          `Token created! Mint address: ${mintKeypair.publicKey.toBase58()}`
+        );
+      } catch (txError) {
+        console.error("Transaction error:", txError);
+      }
+    } catch (error: unknown) {
+      console.error("Error creating token:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <form onSubmit={createToken} className="max-w-3xl mx-auto p-4 space-y-6">
+        <div className="w-full h-48 flex items-center justify-center border-2 border-dashed border-gray-400 rounded-lg cursor-pointer">
+          <label
+            htmlFor="upload-image"
+            className="flex flex-col items-center space-y-2"
+          >
+            {imgPreview ? (
+              <img
+                src={imgPreview}
+                alt="Selected"
+                className="h-40 w-auto object-contain"
+              />
+            ) : (
+              <>
+                <svg
+                  className="w-12 h-12 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 16.5v-5.25m0 0V4.5M12 11.25L9.75 9m2.25 2.25l2.25-2.25M12 16.5v-5.25M15.75 9l-3.75 3.75M6 19.5V17.25m12 0V19.5M12 19.5v-2.25M6 17.25A1.5 1.5 0 016 15V13.5a1.5 1.5 0 013 0V15m6 0v-1.5a1.5 1.5 0 113 0V15m-9 0a1.5 1.5 0 01-3 0v-1.5M6 13.5a1.5 1.5 0 113 0V15m0 0L9.75 12.75M12 9v2.25m0-2.25L15.75 6"
+                  />
+                </svg>
+                <p className="text-gray-400">
+                  {uploadingImage ? "Uploading image..." : "Upload Image"}
+                </p>
+              </>
+            )}
+          </label>
+          <input
+            id="upload-image"
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-white font-semibold mb-1">
+              * Name:
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Token Name"
+              className="w-full px-3 py-2 border rounded bg-gray-900 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-white font-semibold mb-1">
+              * Symbol:
+            </label>
+            <input
+              type="text"
+              value={symbol}
+              onChange={(e) => setSymbol(e.target.value)}
+              placeholder="Token Symbol"
+              className="w-full px-3 py-2 border rounded bg-gray-900 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-white font-semibold mb-1">
+              * Decimals:
+            </label>
+            <input
+              type="number"
+              value={decimals}
+              onChange={(e) =>
+                setDecimals(e.target.value ? parseInt(e.target.value) : "")
+              }
+              placeholder="Token Decimals"
+              className="w-full px-3 py-2 border rounded bg-gray-900 text-white"
+            />
+          </div>
+          <div>
+            <label className="block text-white font-semibold mb-1">
+              * Amount:
+            </label>
+            <input
+              type="number"
+              value={amount}
+              onChange={(e) =>
+                setAmount(e.target.value ? parseFloat(e.target.value) : "")
+              }
+              placeholder="Total Supply"
+              className="w-full px-3 py-2 border rounded bg-gray-900 text-white"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-white font-semibold mb-1">
+            Description:
+          </label>
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Token Description"
+            className="w-full px-3 py-2 border rounded bg-gray-900 text-white"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 transition"
+        >
+          {loading ? "Creating Token..." : "Create Token"}
+        </button>
+
+        <p className="text-white font-bold text-center mt-4">
+          Currently this feature is not working
+        </p>
+      </form>
+    </div>
+  );
+};
+
+export default Videotoken;

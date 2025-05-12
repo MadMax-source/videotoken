@@ -1,0 +1,176 @@
+"use client"
+
+import { ReusableFormField } from '@/components/shared/form/Input'
+import { Form } from '@/components/ui/form'
+import React from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from "@hookform/resolvers/zod"
+import { CreateTokenSchema, CreateTokenSchemaType } from '@/constants/validations/create-token'
+import { UploadPhoto, UploadVideo } from './uploads'
+import { Button } from '@/components/ui/button'
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from '@/components/ui/label'
+
+
+function CreateToken() {
+    const form = useForm<CreateTokenSchemaType>({
+        resolver: zodResolver(CreateTokenSchema),
+        mode: 'onChange',
+        defaultValues: {
+            token_name: "",
+            description: "",
+            decimals: undefined,
+            initial_supply: undefined,
+            instagram_url: "",
+            // mutate_meta_data: false,
+            other_socials: "",
+            Telegram_url: "",
+            token_photo: "",
+            token_symbol: "",
+            token_video: "",
+            website_url: ""
+        },
+    })
+
+    function onSubmit(values: CreateTokenSchemaType) {
+        console.log("Submitting...");
+        console.log(values);
+    }
+
+
+    const handleVideoUpload = (file: File) => {
+        const previewUrl = URL.createObjectURL(file);
+        form.setValue('token_video', previewUrl);
+    };
+
+    const handlePhotoUpload = (file: File) => {
+        const previewUrl = URL.createObjectURL(file);
+        form.setValue('token_photo', previewUrl);
+    };
+
+    const socials = [
+        { name: "instagram_url", label: "Instagram", placeholder: "Enter the URL here" },
+        { name: "website_url", label: "Website", placeholder: "Enter Link URL here" },
+        { name: "telegram_url", label: "Telegram", placeholder: "Enter the Link here" },
+    ]
+    
+    return (
+        <div className="flex flex-col w-full 2xl:max-w-[90%] mx-auto h-full pb-10">
+            <h1 className="text-3xl font-semibold text-white">Create Videotoken</h1>
+
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 flex flex-col w-full relative z-10">
+                    <div className="flex flex-col sm:flex-col lg:flex-row items-center w-full mt-5 gap-5">
+                        <div className="w-full">
+                            <ReusableFormField
+                                control={form.control}
+                                name="token_name"
+                                label="Token Name"
+                                placeholder="Token"
+                                className="focus:border-[#FFEA00] text-white ring-0 outline-0 placeholder:text-white/50 border-white/25 w-full"
+                            />
+                        </div>
+
+                        <div className="w-full">
+                            <ReusableFormField
+                                control={form.control}
+                                name="token_symbol"
+                                label="Token Symbol"
+                                placeholder="TKN"
+                                className="focus:border-[#FFEA00] text-white placeholder:text-white/50 border-white/25 w-full"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <Label className='text-white urbanist pb-2'>Video Token</Label>
+                        <UploadVideo onUpload={handleVideoUpload} />
+                    </div>
+                    <div className="flex flex-col sm:flex-col lg:flex-row items-center w-full gap-5">
+                        <div className="w-full">
+                            <ReusableFormField
+                                control={form.control}
+                                name="initial_supply"
+                                label="Inital Supply"
+                                placeholder="1,000,000"
+                                type='number'
+                                className="focus:border-[#FFEA00] text-white placeholder:text-white/50 border-white/25 w-full"
+                            />
+                        </div>
+
+                        <div className="w-full">
+                            <ReusableFormField
+                                control={form.control}
+                                name="decimals"
+                                label="Decimals"
+                                type='number'
+                                placeholder="9"
+                                className="focus:border-[#FFEA00] text-white placeholder:text-white/50 border-white/25 w-full"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-col lg:flex-row items-center w-full  gap-5">
+                        <div className='w-full'>
+                            <ReusableFormField
+                                control={form.control}
+                                name="description"
+                                label="Description"
+                                placeholder="Enter a Description of your videotoken"
+                                fieldType='textarea'
+                                className="focus:border-[#FFEA00] text-white min-h-36 resize-none placeholder:text-white/50 border-white/25 w-full"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <div className="flex items-center space-x-2">
+                            <Checkbox id="mutate_meta_data" className='text-white' />
+                            <label
+                                htmlFor="mutate_meta_data"
+                                className="text-sm font-light urbanist text-white leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                               Make metadata immutable
+                            </label>
+                        </div>
+
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 w-full gap-5">
+                        {socials.map(({ name, label, placeholder }) => (
+                            <div className="w-full" key={name}>
+                                <ReusableFormField
+                                    control={form.control}
+                                    name={name}
+                                    label={label}
+                                    type='url'
+                                    placeholder={placeholder}
+                                    className="focus:border-[#FFEA00] text-white placeholder:text-sm placeholder:text-white/50 border-white/25 w-full"
+                                />
+                            </div>
+                        ))}
+                        <div className='w-full'>
+                            <ReusableFormField
+                                control={form.control}
+                                name="other_socials"
+                                label="Other Socials"
+                                type='url'
+                                placeholder="Enter the link here"
+                                className="focus:border-[#FFEA00] text-white placeholder:text-white/50 border-white/25 w-full"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                    <Label className='text-white urbanist pb-2'>Token Foto</Label>
+                        <UploadPhoto onUpload={handlePhotoUpload} />
+                    </div>
+
+                    <Button type="submit" className={"w-full py-3  bg-amber-400 hover:bg-amber-600 cursor-pointer"}>Create Token</Button>
+                </form>
+            </Form>
+        </div>
+
+    )
+}
+
+export default CreateToken

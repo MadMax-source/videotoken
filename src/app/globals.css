@@ -1,0 +1,35 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap");
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+body {
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+}
+
+.inter {
+  font-family: "Inter", sans-serif;
+}
+.urbanist {
+  font-family: "Urbanist", sans-serif;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+/* Track */
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: #161622;
+  border-radius: 0;
+}
+
+/* Handle on hover */
+/* ::-webkit-scrollbar-thumb:hover {
+  background: gray;
+} */
