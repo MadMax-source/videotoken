@@ -18,7 +18,7 @@ import "@solana/wallet-adapter-react-ui/styles.css";
 export const WalletContextProvider: FC<{ children: ReactNode }> = ({
   children,
 }) => {
-  const network = clusterApiUrl("mainnet-beta"); // => 'mainnet-beta', 'testnet'
+  const network = clusterApiUrl("devnet"); // => 'mainnet-beta', 'testnet'
 
   const wallets = useMemo(
     () => [

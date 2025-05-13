@@ -12,6 +12,7 @@ import {
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { UploadPhoto, UploadVideo } from "./uploads";
+import { Button } from "@/components/ui/button";
 
 function CreateToken() {
   const wallet = useWallet();
@@ -20,6 +21,7 @@ function CreateToken() {
   const [symbol, setSymbol] = useState<string>("");
   const [decimals, setDecimals] = useState<number | "">("");
   const [amount, setAmount] = useState<number | "">("");
+  const [description, setDescription] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [mintAddress, setMintAddress] = useState<string | null>(null);
 
@@ -60,14 +62,22 @@ function CreateToken() {
     console.log("Form Submitted", formData);
   };
 
-  const handleCreateToken = async () => {
+  const handleCreateToken = async (e: { preventDefault: () => void }) => {
+    e.preventDefault();
     if (!wallet.publicKey) {
       alert("Wallet not connected");
       return;
     }
 
-    if (!name || !symbol || !decimals || !amount) {
-      alert("Please provide name, symbol, decimals, and amount.");
+    if (
+      !wallet.publicKey ||
+      !name ||
+      !symbol ||
+      !description ||
+      !decimals ||
+      !amount
+    ) {
+      alert("Please provide name, symbol, decimals, amount, description .");
       return;
     }
 
@@ -149,7 +159,7 @@ function CreateToken() {
       <h1 className="text-3xl font-semibold text-white">Create Videotoken</h1>
 
       <form
-        onSubmit={handleSubmit}
+        onSubmit={handleCreateToken}
         className="space-y-8 flex flex-col w-full relative z-10"
       >
         <div className="flex flex-col sm:flex-col lg:flex-row items-center w-full mt-5 gap-5">
@@ -211,8 +221,8 @@ function CreateToken() {
             <label className="text-white">Description</label>
             <input
               name="description"
-              value={formData.description}
-              onChange={handleInputChange}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter a Description of your videotoken"
               className="focus:border-[#FFEA00] text-white min-h-36 resize-none placeholder:text-white/50 border-white/25 w-full"
             />
@@ -267,17 +277,17 @@ function CreateToken() {
         </div>
 
         <button
-          onClick={handleCreateToken}
+          type="submit"
+          disabled={loading}
           className="w-full py-3 bg-amber-400 hover:bg-amber-600 cursor-pointer"
         >
           {loading ? "Creating..." : "Create Token"}
-          Create Token
         </button>
         {mintAddress && (
           <div className="mt-4">
             <p className="text-white">Token created successfully!</p>
             <a
-              href={`https://explorer.solana.com/address/${mintAddress}?cluster=mainnet`}
+              href={`https://explorer.solana.com/address/${mintAddress}?cluster=devnet`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-400 underline"
