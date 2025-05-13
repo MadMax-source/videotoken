@@ -22,7 +22,10 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
 
   const wallets = useMemo(
     () => [
-      new PhantomWalletAdapter(),
+      new PhantomWalletAdapter({
+        network: "devnet",
+        appUrl: "https://videotoken-seven.vercel.app/dev/create-token",
+      }),
       new SolflareWalletAdapter(),
       new CloverWalletAdapter(),
     ],
