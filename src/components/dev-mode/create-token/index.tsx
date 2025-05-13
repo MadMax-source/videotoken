@@ -181,7 +181,7 @@ function CreateToken() {
               name="token_symbol"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value)}
-              placeholder="NIN"
+              placeholder="Symbol"
               className="focus:border-[#FFEA00] text-white placeholder:text-white/50 border-white/25 w-full"
             />
           </div>
