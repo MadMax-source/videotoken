@@ -175,6 +175,7 @@ function CreateToken() {
           </div>
 
           <div className="w-full">
+            <label className="text-white">Token Symbol</label>
             <input
               type="text"
               name="token_symbol"
